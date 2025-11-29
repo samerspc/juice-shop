@@ -32,13 +32,16 @@ jobs:
         continue-on-error: true
 
       - name: Install frontend dependencies
-        if: exists('frontend/package.json')
         run: |
-          cd frontend
-          if [ -f package-lock.json ]; then
-            npm ci --ignore-scripts || npm install --ignore-scripts
+          if [ -f frontend/package.json ]; then
+            cd frontend
+            if [ -f package-lock.json ]; then
+              npm ci --ignore-scripts || npm install --ignore-scripts
+            else
+              npm install --ignore-scripts
+            fi
           else
-            npm install --ignore-scripts
+            echo "No frontend/package.json found, skipping frontend dependencies"
           fi
         continue-on-error: true
 
