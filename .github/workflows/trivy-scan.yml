@@ -29,7 +29,7 @@ jobs:
           else
             npm install --ignore-scripts
           fi
-        continue-on-error: true
+        continue-on-error: false
 
       - name: Install frontend dependencies
         run: |
@@ -43,7 +43,7 @@ jobs:
           else
             echo "No frontend/package.json found, skipping frontend dependencies"
           fi
-        continue-on-error: true
+        continue-on-error: false
 
       - name: Verify dependencies installation
         run: |
@@ -64,23 +64,24 @@ jobs:
         uses: aquasecurity/trivy-action@master
         with:
           scan-type: 'fs'
-          scan-ref: 'package.json'
+          scan-ref: '.'
           format: 'sarif'
           output: 'trivy-results-root.sarif'
           severity: 'CRITICAL,HIGH,MEDIUM,LOW'
           scanners: 'vuln'
-        continue-on-error: true
+          skip-dirs: 'frontend,dist,build,.git'
+        continue-on-error: false
 
       - name: Run Trivy vulnerability scanner (frontend)
         uses: aquasecurity/trivy-action@master
         with:
           scan-type: 'fs'
-          scan-ref: 'frontend/package.json'
+          scan-ref: 'frontend'
           format: 'sarif'
           output: 'trivy-results-frontend.sarif'
           severity: 'CRITICAL,HIGH,MEDIUM,LOW'
           scanners: 'vuln'
-        continue-on-error: true
+        continue-on-error: false
 
       - name: Merge SARIF files
         run: |
@@ -94,27 +95,28 @@ jobs:
           else
             echo '{}' > trivy-results.sarif
           fi
-        continue-on-error: true
+        continue-on-error: false
 
       - name: Generate SBOM (root)
         uses: aquasecurity/trivy-action@master
         with:
           scan-type: 'fs'
-          scan-ref: 'package.json'
+          scan-ref: '.'
           format: 'cyclonedx'
           output: 'sbom-root.json'
           scanners: 'vuln'
-        continue-on-error: true
+          skip-dirs: 'frontend,dist,build,.git'
+        continue-on-error: false
 
       - name: Generate SBOM (frontend)
         uses: aquasecurity/trivy-action@master
         with:
           scan-type: 'fs'
-          scan-ref: 'frontend/package.json'
+          scan-ref: 'frontend'
           format: 'cyclonedx'
           output: 'sbom-frontend.json'
           scanners: 'vuln'
-        continue-on-error: true
+        continue-on-error: false
 
       - name: Merge SBOM files
         run: |
@@ -128,7 +130,7 @@ jobs:
           else
             echo '{}' > sbom.json
           fi
-        continue-on-error: true
+        continue-on-error: false
 
       - name: Scan SBOM for vulnerabilities
         uses: aquasecurity/trivy-action@master
@@ -138,29 +140,30 @@ jobs:
           scan-ref: 'sbom.json'
           format: 'table'
           output: 'vulnerabilities.txt'
-        continue-on-error: true
+        continue-on-error: false
 
       - name: Generate JSON report (root)
         uses: aquasecurity/trivy-action@master
         with:
           scan-type: 'fs'
-          scan-ref: 'package.json'
+          scan-ref: '.'
           format: 'json'
           output: 'trivy-results-root.json'
           severity: 'CRITICAL,HIGH,MEDIUM,LOW'
           scanners: 'vuln'
-        continue-on-error: true
+          skip-dirs: 'frontend,dist,build,.git'
+        continue-on-error: false
 
       - name: Generate JSON report (frontend)
         uses: aquasecurity/trivy-action@master
         with:
           scan-type: 'fs'
-          scan-ref: 'frontend/package.json'
+          scan-ref: 'frontend'
           format: 'json'
           output: 'trivy-results-frontend.json'
           severity: 'CRITICAL,HIGH,MEDIUM,LOW'
           scanners: 'vuln'
-        continue-on-error: true
+        continue-on-error: false
 
       - name: Merge JSON reports
         run: |
@@ -200,7 +203,7 @@ jobs:
           
           print(f"Merged {len(results)} results")
           EOF
-        continue-on-error: true
+        continue-on-error: false
 
       - name: Generate HTML report
         if: hashFiles('trivy-results.json') != ''
@@ -273,7 +276,7 @@ jobs:
               with open('trivy-report.html', 'w') as f:
                   f.write("""<!DOCTYPE html><html><head><title>Trivy Report</title></head><body><h1>Trivy Security Report</h1><p>Report generation in progress or no vulnerabilities found.</p></body></html>""")
           EOF
-        continue-on-error: true
+        continue-on-error: false
 
       - name: Upload Trivy results to GitHub Security
         uses: github/codeql-action/upload-sarif@v4
@@ -291,3 +294,5 @@ jobs:
             sbom.json
             vulnerabilities.txt
           retention-days: 7
+
+
