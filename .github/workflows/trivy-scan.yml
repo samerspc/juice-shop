@@ -22,14 +22,40 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Install dependencies (optional)
+      - name: Install root dependencies
         run: |
           if [ -f package-lock.json ]; then
-            npm ci || npm install
+            npm ci --ignore-scripts || npm install --ignore-scripts
           else
-            npm install
+            npm install --ignore-scripts
           fi
         continue-on-error: true
+
+      - name: Install frontend dependencies
+        if: exists('frontend/package.json')
+        run: |
+          cd frontend
+          if [ -f package-lock.json ]; then
+            npm ci --ignore-scripts || npm install --ignore-scripts
+          else
+            npm install --ignore-scripts
+          fi
+        continue-on-error: true
+
+      - name: Verify dependencies installation
+        run: |
+          echo "Checking for node_modules..."
+          if [ -d "node_modules" ]; then
+            echo "✓ Root node_modules exists"
+            ls -la node_modules | head -5
+          else
+            echo "✗ Root node_modules not found"
+          fi
+          if [ -d "frontend/node_modules" ]; then
+            echo "✓ Frontend node_modules exists"
+          else
+            echo "✗ Frontend node_modules not found"
+          fi
 
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@master
@@ -39,6 +65,7 @@ jobs:
           format: 'sarif'
           output: 'trivy-results.sarif'
           severity: 'CRITICAL,HIGH,MEDIUM,LOW'
+          scanners: 'vuln,secret,config'
         continue-on-error: true
 
       - name: Generate SBOM
@@ -68,6 +95,7 @@ jobs:
           format: 'json'
           output: 'trivy-results.json'
           severity: 'CRITICAL,HIGH,MEDIUM,LOW'
+          scanners: 'vuln,secret,config'
         continue-on-error: true
 
       - name: Generate HTML report
@@ -159,4 +187,3 @@ jobs:
             sbom.json
             vulnerabilities.txt
           retention-days: 7
-
